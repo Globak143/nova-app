@@ -1,0 +1,33 @@
+name: Build and Deploy Nova-App
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+      - run: npm install
+      - run: npm test
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::628165586772:role/github-actions-nova-app-deploy
+          aws-region: us-east-1
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: login-ecr
+      - run: |
+          docker build --build-arg GIT_COMMIT=${{ github.sha }} ... -t $ECR_REGISTRY/nova-app:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/nova-app:$IMAGE_TAG
+      - run: aws eks update-kubeconfig --name nova-app-cluster --region us-east-1
+      - run: |
+          kubectl set image deployment/nova-app-deployment nova-app-container=... 
+          kubectl rollout status deployment/nova-app-deployment
