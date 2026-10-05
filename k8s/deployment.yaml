@@ -21,6 +21,13 @@ spec:
           image: 628165586772.dkr.ecr.us-east-1.amazonaws.com/nova-app
           ports:
             - containerPort: 3000
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
 ---
 apiVersion: v1
 kind: Service
