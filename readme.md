@@ -6,9 +6,9 @@
 [![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![Node.js](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 
-A production-ready Node.js application deployed on Amazon EKS (Elastic Kubernetes Service) demonstrating cloud-native development and container orchestration skills.
+A manual, budget-friendly Node.js application deployed on Amazon EKS (Elastic Kubernetes Service) demonstrating cloud-native development and container orchestration skills.
 
-##  Project Overview
+## Project Overview
 
 This project showcases a complete containerized application deployment workflow:
 - Building a Node.js Express application
@@ -42,14 +42,19 @@ User → AWS Load Balancer → EKS Cluster → Pod Replicas (3x) → Node.js App
 - **Tools:** AWS CLI, eksctl, kubectl, Docker CLI
 
 ## 📁 Project Structure
+```
 nova-app/
 ├── server.js              # Main application file
 ├── package.json           # Node.js dependencies
-├── Dockerfile            # Docker image definition
-├── cluster-config.yaml   # EKS cluster configuration
-├── deployment.yaml       # Kubernetes deployment & service
-├── .gitignore           # Git ignore rules
-└── README.md            # Project documentation
+├── package-lock.json      # Locked dependency versions
+├── Dockerfile             # Docker image definition
+├── k8s/
+│   ├── cluster-config.yaml  # EKS cluster configuration
+│   └── deployment.yaml      # Kubernetes deployment & service
+├── .gitignore             # Git ignore rules
+├── LICENSE                # MIT License
+└── readme.md              # Project documentation
+```
 
 ## Prerequisites
 
@@ -65,7 +70,7 @@ nova-app/
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/YOUR-USERNAME/nova-app.git
+git clone https://github.com/Globak143/nova-app.git
 cd nova-app
 ```
 
@@ -128,7 +133,7 @@ kubectl get pods
 
 **Always clean up to avoid AWS charges:**
 ```bash
-eksctl delete cluster -f cluster-config.yaml
+eksctl delete cluster -f k8s/cluster-config.yaml
 ```
 
 Verify deletion in AWS Console:
@@ -178,9 +183,9 @@ Found an issue or have a suggestion? Feel free to open an issue or submit a pull
 **Gloria Boakye**
 - LinkedIn: [linkedin.com/in/gloriaboakye](https://linkedin.com/in/gloriaboakye)
 - Medium: [@gloriaboakye](https://medium.com/@gloriaboakye)
-- GitHub: [github.com/YOUR-USERNAME](https://github.com/Globak143)
+- GitHub: [github.com/Globak143](https://github.com/Globak143)
 
-##  License
+## License
 
 This project is open source and available under the [MIT License](LICENSE).
 
