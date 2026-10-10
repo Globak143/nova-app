@@ -1,195 +1,160 @@
-# Nova-App: AWS EKS Deployment Project
+# Nova-App: Node.js on AWS EKS, from Manual Deploy to CI/CD with Monitoring
 
-
+[![Deploy](https://github.com/Globak143/nova-app/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/Globak143/nova-app/actions/workflows/deploy.yml)
 [![AWS](https://img.shields.io/badge/AWS-EKS-orange)](https://aws.amazon.com/eks/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![Node.js](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 
-A production-ready Node.js application deployed on Amazon EKS (Elastic Kubernetes Service) demonstrating cloud-native development and container orchestration skills.
+A small Node.js (Express) app used as a hands-on project to learn how applications run on Amazon EKS. It started as a manual, budget-friendly deployment and has grown into an automated pipeline with monitoring. This is a learning project, not a production system.
 
-##  Project Overview
+## Two ways to run it
 
-This project showcases a complete containerized application deployment workflow:
-- Building a Node.js Express application
-- Containerizing with Docker
-- Deploying to AWS EKS
-- Implementing Kubernetes best practices
-- Cost optimization strategies
+The repo has two stages. They use the same application code, Dockerfile and Kubernetes manifests.
 
-**Total Deployment Cost:** Under $2 using optimized t3.small instances
+| | Manual deployment | Automated CI/CD + monitoring |
+|---|---|---|
+| What it is | Build the image, push it to Docker Hub, apply the manifests yourself | `git push` tests, builds, pushes to ECR and deploys to EKS; Prometheus monitors the pods |
+| Where to find it | [`manual-deployment` tag](https://github.com/Globak143/nova-app/tree/manual-deployment) | This branch (`main`) |
+| Article | [Deploying a Simple Node.js App on AWS EKS](https://medium.com/@gloriaboakye/deploying-a-simple-node-js-app-on-aws-eks-a-beginner-and-budget-friendly-guide-02d1e101fd26) | Part 1 and Part 2 on AWS Builder Center (links coming) |
 
-## Architecture
-User → AWS Load Balancer → EKS Cluster → Pod Replicas (3x) → Node.js App
+**Following the manual article?** Use the [`manual-deployment` tag](https://github.com/Globak143/nova-app/tree/manual-deployment), not `main`. It has the exact code and README the article describes, including the public Docker Hub image. On `main`, `k8s/deployment.yaml` points at a private ECR repository that you cannot pull from.
 
-## Features
+## Architecture (automated version)
 
-- ✅ RESTful API with health check endpoint
-- ✅ Docker containerization
-- ✅ Kubernetes deployment with 3 replicas for high availability
-- ✅ AWS LoadBalancer integration
-- ✅ Manual and auto-scaling capabilities
-- ✅ Cost-optimized infrastructure
+```
+ Developer
+    |  git push
+    v
+ GitHub Actions --> run tests --> build Docker image
+                                        |
+                                        v
+                                 Amazon ECR
+                                        |  deploy
+                                        v
+ +------------------- Amazon EKS ---------------------+
+ |                                                    |
+ |   nova-app  (3 pods, each exposes /metrics)        |
+ |        ^                                           |
+ |        | scrape (via ServiceMonitor)               |
+ |   Prometheus ----> Grafana                         |
+ |        |                                           |
+ |        +---------> Alertmanager                    |
+ |                                                    |
+ +----------------------------------------------------+
+```
 
-## Technologies Used
+Prometheus is scraping all three pods. The Grafana dashboard and Alertmanager rules are being built next and will be covered in Part 2.
 
-- **Cloud Platform:** AWS (EKS, EC2, VPC, LoadBalancer)
-- **Container Orchestration:** Kubernetes
-- **Containerization:** Docker
-- **Runtime:** Node.js v18
-- **Framework:** Express.js
-- **IaC:** YAML manifests (eksctl, kubectl)
-- **Tools:** AWS CLI, eksctl, kubectl, Docker CLI
+## What's in this repo
 
-## 📁 Project Structure
+```
 nova-app/
-├── server.js              # Main application file
-├── package.json           # Node.js dependencies
-├── Dockerfile            # Docker image definition
-├── cluster-config.yaml   # EKS cluster configuration
-├── deployment.yaml       # Kubernetes deployment & service
-├── .gitignore           # Git ignore rules
-└── README.md            # Project documentation
-
-## Prerequisites
-
-- [AWS Account](https://aws.amazon.com/free/)
-- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) (configured)
-- [kubectl](https://kubernetes.io/docs/tasks/tools/)
-- [eksctl](https://eksctl.io/installation/)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- [Node.js](https://nodejs.org/)
-- [Docker Hub account](https://hub.docker.com/signup)
-
-## Installation & Deployment
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/YOUR-USERNAME/nova-app.git
-cd nova-app
+├── server.js                      # Express app (/, /health, /version, /metrics)
+├── package.json                   # Node.js dependencies
+├── Dockerfile                     # Image definition
+├── tests/
+│   └── server.test.js             # Automated tests (run first in the pipeline)
+├── .github/workflows/
+│   └── deploy.yml                 # CI/CD: test, build, push to ECR, deploy to EKS
+├── k8s/
+│   ├── cluster-config.yaml        # EKS cluster definition (eksctl)
+│   ├── deployment.yaml            # Deployment (3 replicas) and LoadBalancer Service
+│   ├── rbac.yaml                  # Role and RoleBinding: least-privilege access for the pipeline
+│   └── servicemonitor.yaml        # Tells Prometheus how to scrape the app
+├── .dockerignore
+├── .gitignore
+├── LICENSE
+└── readme.md
 ```
 
-### 2. Test Locally
+The manual deployment uses only `server.js`, `package.json`, `Dockerfile`, `k8s/cluster-config.yaml` and `k8s/deployment.yaml`. The tests, workflow, RBAC and ServiceMonitor were added for the automated version.
+
+## API endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `/` | Main application endpoint |
+| `/health` | Health check with uptime |
+| `/version` | Shows which commit is currently deployed |
+| `/metrics` | Prometheus metrics, including request counts and latency per pod |
+
+## Automated CI/CD
+
+The workflow in `.github/workflows/deploy.yml` runs on every push to `main`:
+
+1. Run the tests
+2. Build the Docker image
+3. Push it to Amazon ECR (tagged with the commit SHA, plus `:latest`)
+4. Update the Deployment on EKS and wait for the rollout to finish
+
+After a push, open `/version` to see the new commit.
+
+**Note:** the workflow updates the container image only. It does not apply the files in `k8s/`. When you change a manifest, apply it yourself with `kubectl apply -f k8s/<file>.yaml`.
+
+## Monitoring
+
+Prometheus, Grafana and Alertmanager run in a `monitoring` namespace, installed with the `kube-prometheus-stack` Helm chart. A typical install looks like this (adjust values, such as the Grafana admin password, for your setup):
+
 ```bash
-npm install
-node server.js
-# Visit http://localhost:3000
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm install monitoring prometheus-community/kube-prometheus-stack -n monitoring --create-namespace
 ```
 
-### 3. Build Docker Image
-```bash
-docker build -t nova-app:v1 .
-docker run -d -p 3000:3000 nova-app:v1
-```
+Then apply the manifests so Prometheus can find the app:
 
-### 4. Push to Docker Hub
-```bash
-docker login
-docker tag nova-app:v1 YOUR-USERNAME/nova-app:v1
-docker push YOUR-USERNAME/nova-app:v1
-```
-
-### 5. Create EKS Cluster
-```bash
-eksctl create cluster -f k8s/cluster-config.yaml
-# Wait 10-20 minutes for cluster creation
-```
-
-### 6. Deploy Application
-Update k8s/deployment.yaml with your Docker Hub username, then:
 ```bash
 kubectl apply -f k8s/deployment.yaml
-kubectl get svc  # Get LoadBalancer URL
+kubectl apply -f k8s/servicemonitor.yaml
 ```
 
-### 7. Access Application
+Two details matter, and both fail silently if wrong:
+- The Service in `k8s/deployment.yaml` needs the label `app: nova-app` and a port named `http`.
+- The ServiceMonitor needs the label `release: monitoring`, which must match your Helm release name.
+
+Prometheus and Grafana are not exposed publicly. Reach them with `kubectl port-forward`.
+
+## Cost and cleanup
+
+An EKS cluster, its nodes and the load balancer all bill by the hour, so **always clean up when you are done**:
+
 ```bash
-# Get external IP
-kubectl get svc nova-app-service
-
-# Visit in browser:
-# http://<EXTERNAL-IP>
-# http://<EXTERNAL-IP>/health
+eksctl delete cluster -f k8s/cluster-config.yaml
 ```
 
-## Scaling
-```bash
-# Scale up
-kubectl scale deployment nova-app-deployment --replicas=5
+Then check the AWS Console for leftover EC2 instances, load balancers and EKS clusters.
 
-# Scale down
-kubectl scale deployment nova-app-deployment --replicas=1
+The manual article's cost breakdown (about $1.50 to $2.00) applies to a short run of roughly two hours. A cluster left running for days, with monitoring installed, will cost more.
 
-# Check status
-kubectl get pods
-```
+## Technologies
 
-## Cleanup (IMPORTANT!)
+- **Cloud:** AWS (EKS, ECR, EC2, VPC, Load Balancer)
+- **Containers and orchestration:** Docker, Kubernetes
+- **CI/CD:** GitHub Actions
+- **Monitoring:** Prometheus, Grafana, Alertmanager (kube-prometheus-stack via Helm)
+- **Application:** Node.js, Express
+- **Tools:** AWS CLI, eksctl, kubectl, Helm
 
-**Always clean up to avoid AWS charges:**
-```bash
-eksctl delete cluster -f cluster-config.yaml
-```
+## Related resources
 
-Verify deletion in AWS Console:
-- EC2 Instances
-- Load Balancers
-- EKS Clusters
-
-## Cost Breakdown
-
-| Resource | Duration | Cost |
-|----------|----------|------|
-| EKS Control Plane | ~2 hours | ~$0.40 |
-| 2x t3.small nodes | ~2 hours | ~$0.08 |
-| Load Balancer | ~2 hours | ~$0.05 |
-| **Total** | | **~$1.50-$2.00** |
-
-## API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | Main application endpoint |
-| `/health` | GET | Health check with uptime |
-
-## What I Learned
-
-- AWS EKS cluster management and configuration
-- Kubernetes deployment strategies and replica management
-- Docker containerization and multi-stage builds
-- Infrastructure cost optimization
-- Cloud-native application architecture
-- LoadBalancer configuration and external access
-- Kubernetes service types and networking
-- Infrastructure lifecycle management
-
-## Contributing
-
-Found an issue or have a suggestion? Feel free to open an issue or submit a pull request.
-
-## Related Resources
-
-- **Medium Article:** [Deploying a Simple Node.js App on AWS EKS](https://medium.com/@gloriaboakye/deploying-a-simple-node-js-app-on-aws-eks-a-beginner-and-budget-friendly-guide-02d1e101fd26)
-- **AWS EKS Documentation:** [https://docs.aws.amazon.com/eks/](https://docs.aws.amazon.com/eks/)
-- **Kubernetes Docs:** [https://kubernetes.io/docs/](https://kubernetes.io/docs/)
+- **Medium:** [Deploying a Simple Node.js App on AWS EKS](https://medium.com/@gloriaboakye/deploying-a-simple-node-js-app-on-aws-eks-a-beginner-and-budget-friendly-guide-02d1e101fd26)
+- **AWS Builder Center:** Part 1 and Part 2 (links coming)
+- [Amazon EKS documentation](https://docs.aws.amazon.com/eks/)
+- [Kubernetes documentation](https://kubernetes.io/docs/)
 
 ## Author
 
 **Gloria Boakye**
 - LinkedIn: [linkedin.com/in/gloriaboakye](https://linkedin.com/in/gloriaboakye)
 - Medium: [@gloriaboakye](https://medium.com/@gloriaboakye)
-- GitHub: [github.com/YOUR-USERNAME](https://github.com/Globak143)
+- GitHub: [Globak143](https://github.com/Globak143)
 
-##  License
+## License
 
 This project is open source and available under the [MIT License](LICENSE).
 
 ## Acknowledgments
 
 - AWS re/Start Program by Azubi Africa
-- Kubernetes and Cloud Native Computing Foundation
-- The DevOps and Cloud Native community
-
----
-
-⭐ If you find this project helpful, please give it a star!
+- Kubernetes and the Cloud Native Computing Foundation
+- The DevOps and cloud native community
