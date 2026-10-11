@@ -22,4 +22,9 @@ describe("Nova-App endpoints", () => {
     expect(res.body).toHaveProperty("commit");
     expect(res.body).toHaveProperty("builtAt");
   });
+
+  test("GET /version reports the version from package.json", async () => {
+    const res = await request(app).get("/version");
+    expect(res.body.version).toBe(require("../package.json").version);
+  });
 });

@@ -1,8 +1,10 @@
 const express = require("express");
 const client = require("prom-client");
+const pkg = require("./package.json");
 
 const app = express();
 const port = process.env.PORT || 3000;
+
 
 // Prometheus metrics setup
 const register = new client.Registry();
@@ -45,7 +47,7 @@ app.get("/health", (req, res) => {
 app.get("/version", (req, res) => {
     res.json({
         app: "nova-app",
-        version: process.env.APP_VERSION || "dev",
+        version: process.env.APP_VERSION || pkg.version,
         commit: process.env.GIT_COMMIT || "unknown",
         builtAt: process.env.BUILD_TIME || "unknown",
         author: "Gloria Boakye"
