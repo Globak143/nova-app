@@ -161,7 +161,7 @@ Verify deletion in AWS Console:
 
 - AWS EKS cluster management and configuration
 - Kubernetes deployment strategies and replica management
-- Docker containerization and multi-stage builds
+- Docker containerization
 - Infrastructure cost optimization
 - Cloud-native application architecture
 - LoadBalancer configuration and external access
