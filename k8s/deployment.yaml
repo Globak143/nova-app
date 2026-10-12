@@ -20,7 +20,10 @@ spec:
         - name: nova-app-container
           image: 628165586772.dkr.ecr.us-east-1.amazonaws.com/nova-app
           ports:
-            - containerPort: 3000
+            - name: http
+              containerPort: 3000
+            - name: metrics
+              containerPort: 9100
           resources:
             requests:
               cpu: "50m"

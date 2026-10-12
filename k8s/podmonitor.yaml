@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: nova-app
+  namespace: default
+  labels:
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: nova-app
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
