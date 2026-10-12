@@ -54,7 +54,8 @@ app.get("/version", (req, res) => {
     });
 });
 
-app.get("/metrics", async (req, res) => {
+const metricsApp = express();
+metricsApp.get("/metrics", async (req, res) => {
     res.set("Content-Type", register.contentType);
     res.end(await register.metrics());
 });
@@ -63,10 +64,17 @@ app.get("/", (req, res) => {
     res.send("Hello from NOVA-APP deployed successfully on AWS EKS!✴️");
 });
 
+const metricsPort = process.env.METRICS_PORT || 9100;
+
 if (require.main === module) {
     app.listen(port, () => {
         console.log("NOVA-APP is running on port 3000");
     });
+    metricsApp.listen(metricsPort, () => {
+        console.log(`Metrics are served on port ${metricsPort}`);
+    });
 }
 
 module.exports = app;
+// Exposed so tests can reach the metrics app without starting a server.
+module.exports.metricsApp = metricsApp;
