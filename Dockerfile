@@ -1,5 +1,5 @@
 # Start from an official Node.js 18 image — comes with Node and npm pre-installed
-FROM node:18
+FROM node:24
 
 # Set the working folder inside the container; everything after this happens relative to here
 WORKDIR /usr/src/app
@@ -26,7 +26,7 @@ ENV GIT_COMMIT=$GIT_COMMIT
 ENV BUILD_TIME=$BUILD_TIME
 
 # Documents that the app listens on port 3000 (doesn't open the port by itself — just informational)
-EXPOSE 3000
+EXPOSE 3000 9100
 
 # The command that actually runs when a container starts from this image
 # "npm start" runs the "start" script from package.json, which is "node server.js"

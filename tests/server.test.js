@@ -22,4 +22,20 @@ describe("Nova-App endpoints", () => {
     expect(res.body).toHaveProperty("commit");
     expect(res.body).toHaveProperty("builtAt");
   });
+
+  test("GET /version reports the version from package.json", async () => {
+    const res = await request(app).get("/version");
+    expect(res.body.version).toBe(require("../package.json").version);
+  });
+
+  test("GET /metrics is NOT served on the public port", async () => {
+    const res = await request(app).get("/metrics");
+    expect(res.statusCode).toBe(404);
+  });
+
+  test("metrics are served by the separate metrics app", async () => {
+    const res = await request(app.metricsApp).get("/metrics");
+    expect(res.statusCode).toBe(200);
+    expect(res.text).toMatch(/http_requests_total/);
+  });
 });
