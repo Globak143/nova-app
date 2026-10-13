@@ -61,7 +61,7 @@ nova-app/
 │   ├── cluster-config.yaml        # EKS cluster definition (eksctl)
 │   ├── deployment.yaml            # Deployment (3 replicas) and LoadBalancer Service
 │   ├── rbac.yaml                  # Role and RoleBinding: least-privilege access for the pipeline
-│   └── servicemonitor.yaml        # Tells Prometheus how to scrape the app
+│   └── podmonitor.yaml        # Tells Prometheus how to scrape the app
 ├── .dockerignore
 ├── .gitignore
 ├── LICENSE
@@ -77,7 +77,7 @@ The manual deployment uses only `server.js`, `package.json`, `Dockerfile`, `k8s/
 | `/` | Main application endpoint |
 | `/health` | Health check with uptime |
 | `/version` | Shows which commit is currently deployed |
-| `/metrics` | Prometheus metrics, including request counts and latency per pod |
+| `/metrics` | Prometheus metrics (request counts and latency per pod). Served on internal port 9100 only, not on the public port |
 
 ## Automated CI/CD
 
@@ -105,14 +105,14 @@ Then apply the manifests so Prometheus can find the app:
 
 ```bash
 kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/servicemonitor.yaml
+kubectl apply -f k8s/podmonitor.yaml
 ```
 
 Two details matter, and both fail silently if wrong:
-- The Service in `k8s/deployment.yaml` needs the label `app: nova-app` and a port named `http`.
-- The ServiceMonitor needs the label `release: monitoring`, which must match your Helm release name.
+- The container in `k8s/deployment.yaml` must declare a port named `metrics` (9100), because the PodMonitor refers to the port by name.
+- The PodMonitor needs the label `release: monitoring`, which must match your Helm release name.
 
-Prometheus and Grafana are not exposed publicly. Reach them with `kubectl port-forward`.
+The app serves `/metrics` on a separate internal port (9100) that the public Service does not forward, so metrics are not reachable from the internet. Prometheus and Grafana are not exposed publicly either. Reach them with `kubectl port-forward`.
 
 ## Cost and cleanup
 
@@ -132,7 +132,7 @@ The manual article's cost breakdown (about $1.50 to $2.00) applies to a short ru
 - **Containers and orchestration:** Docker, Kubernetes
 - **CI/CD:** GitHub Actions
 - **Monitoring:** Prometheus, Grafana, Alertmanager (kube-prometheus-stack via Helm)
-- **Application:** Node.js, Express
+- **Application:** Node.js 24, Express
 - **Tools:** AWS CLI, eksctl, kubectl, Helm
 
 ## Related resources
